@@ -11,20 +11,6 @@ class Encoder(nn.Module):
     def __init__(self, zdim=32):
         super().__init__()
 
-        # Convolution
-        # self.conv1 = nn.Conv2d(1, 8, kernel_size=3, stride=1, padding=1, bias=False) # 8x28x28
-        # self.bn1 = nn.BatchNorm2d(8)
-        # self.relu1 = nn.ReLU()
-        # self.conv2 = nn.Conv2d(8, 16, kernel_size=3, stride=2, padding=1, bias=False) # 16x14x14
-        # self.bn2 = nn.BatchNorm2d(16)
-        # self.relu2 = nn.ReLU()
-        # self.conv3 = nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1, bias=False) # 32x7x7
-        # self.bn3 = nn.BatchNorm2d(32)
-        # self.relu3 = nn.ReLU()
-        # self.conv4 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, bias=False) # 64x7x7
-        # self.bn4 = nn.BatchNorm2d(64)
-        # self.relu4 = nn.ReLU()
-
         self.encoder_cnn = nn.Sequential(
             nn.Conv2d(1, 8, kernel_size=3, stride=1, padding=1, bias=False), # 8x28x28
             nn.BatchNorm2d(8),
@@ -96,6 +82,7 @@ class Decoder(nn.Module):
         x = self.fc(x)
         x = self.unflatten(x)
         x = self.decoder_cnn(x)
+        x = torch.sigmoid(x)
         return x
 
 
