@@ -21,13 +21,13 @@ zdim = 32
 
 # if model exists, load it
 import os
-if os.path.isfile('encoder.pth') and os.path.isfile('decoder.pth'):
+if os.path.isfile('models/encoder.pth') and os.path.isfile('models/decoder.pth'):
     encoder = Encoder(zdim)
     decoder = Decoder(zdim)
     encoder.to(device)
     decoder.to(device)
-    encoder.load_state_dict(torch.load('encoder.pth'))
-    decoder.load_state_dict(torch.load('decoder.pth'))
+    encoder.load_state_dict(torch.load('models/encoder.pth'))
+    decoder.load_state_dict(torch.load('models/decoder.pth'))
 
 else:
     encoder = Encoder(zdim)
@@ -67,8 +67,8 @@ else:
         print('epoch: {}, loss: {:.4f}'.format(epoch, epoch_losses[-1]))
 
     # Save the model
-    torch.save(encoder.state_dict(), 'encoder.pth')
-    torch.save(decoder.state_dict(), 'decoder.pth')
+    torch.save(encoder.state_dict(), 'models/encoder.pth')
+    torch.save(decoder.state_dict(), 'models/decoder.pth')
 
 
     # Plot the losses
