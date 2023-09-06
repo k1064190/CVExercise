@@ -37,6 +37,26 @@ else:
 
 
 # Test the model with a sample
+fashion_mnist_test = torchvision.datasets.FashionMNIST(root='data/FashionMNIST', train=False,\
+                                                        download=True, transform=transforms.ToTensor()).data
+fashion_mnist_test_loader = torch.utils.data.DataLoader(fashion_mnist_test, batch_size=16, shuffle=True)
 
+generator.eval()
+discriminator.eval()
 
+p_real, p_fake = 0., 0.
+for data, _ in fashion_mnist_test_loader:
+    with torch.no_grad():
+        data = data.to(device)
+        z = torch.randn(data.shape[0], 100).to(device)
+        generated_data = generator(z)
+        p_real += discriminator(data).mean().item()
+        p_fake += discriminator(generated_data).mean().item()
+
+p_real /= len(fashion_mnist_test_loader)
+p_fake /= len(fashion_mnist_test_loader)
+
+print(f'p_real: {p_real:.4f}, p_fake: {p_fake:.4f}')
+
+# show generated images
 
