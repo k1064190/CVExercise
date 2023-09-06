@@ -1,3 +1,5 @@
+import random
+
 import cv2 as cv
 import numpy as np
 import torch
@@ -65,6 +67,10 @@ else:
         epoch_loss /= len(train_loader)
         epoch_losses.append(epoch_loss)
         print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.4f}')
+
+    # make directory if not exist
+    if not os.path.isdir('models'):
+        os.mkdir('models')
     torch.save(encoder.state_dict(), 'models/encoder_vae.pth')
     torch.save(decoder.state_dict(), 'models/decoder_vae.pth')
     print("model saved")
@@ -93,4 +99,33 @@ with torch.no_grad():
     for i in range(16):
         axes[0][i].imshow(data[i][0], cmap='gray')
         axes[1][i].imshow(decoded_data[i][0], cmap='gray')
+    plt.show()
+
+
+# Test the model with a sample
+i = random.randint(0, len(mnist_test))
+j = random.randint(0, len(mnist_test))
+
+data1 = mnist_test[i][0].to(device)
+data2 = mnist_test[j][0].to(device)
+
+alpha = np.arange(0, 1.1, 0.1)
+zz = np.zeros((len(alpha), zdim))
+
+with torch.no_grad():
+    z1 = encoder(data1)[2]
+    z2 = encoder(data2)[2]
+
+    for i in range(len(alpha)):
+        zz[i] = alpha[i] * z1 + (1 - alpha[i]) * z2
+
+    zz = torch.from_numpy(zz).float().to(device)
+    decoded_data = decoder(zz)
+    decoded_data = decoded_data.cpu().numpy()
+
+    fig, axes = plt.subplots(1, len(alpha), figsize=(16, 2))
+    for i in range(len(alpha)):
+        axes[i].imshow(decoded_data[i][0], cmap='gray')
+        axes[i].set_title(f'alpha={alpha[i]:.1f}')
+    plt.title(f'Interpolation between {mnist_test[i][1]} and {mnist_test[j][1]}')
     plt.show()

@@ -78,7 +78,6 @@ class VaeLoss(nn.Module):
         super().__init__()
 
     def forward(self, x, x_hat, z_mean, z_log_var):
-        nn.BCELoss()
         reconstruction_loss = nn.functional.binary_cross_entropy(x_hat, x, reduction='none')    # (batch_size, 1, 28, 28)
         reconstruction_loss = torch.sum(reconstruction_loss, dim=(1, 2, 3)) # (batch_size)
         reconstruction_loss = torch.mean(reconstruction_loss)           # (1)
