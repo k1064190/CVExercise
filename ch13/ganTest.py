@@ -45,11 +45,14 @@ generator.eval()
 discriminator.eval()
 
 p_real, p_fake = 0., 0.
-for data, _ in fashion_mnist_test_loader:
+generated_datas = {}
+for data, target in fashion_mnist_test_loader:
     with torch.no_grad():
         data = data.to(device)
         z = torch.randn(data.shape[0], 100).to(device)
         generated_data = generator(z)
+        if generated_datas.get(target.item()[0]) is None:
+            generated_datas.update({target.item()[0]: generated_data[0]})
         p_real += discriminator(data).mean().item()
         p_fake += discriminator(generated_data).mean().item()
 
@@ -59,4 +62,10 @@ p_fake /= len(fashion_mnist_test_loader)
 print(f'p_real: {p_real:.4f}, p_fake: {p_fake:.4f}')
 
 # show generated images
+fig, axes = plt.subplots(2, 5, figsize=(10, 4))
+for key, data in generated_datas.items():
+    print(data.shape)
+    axes[key // 5][key % 5].imshow(data, cmap='gray')
+    axes[key // 5][key % 5].set_title(key)
+    axes[key // 5][key % 5].axis('off')
 
