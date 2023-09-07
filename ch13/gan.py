@@ -66,44 +66,40 @@ class Discriminator(nn.Module):
         x = self.sigmoid(x)
         return x
 
-
-def generate_real_samples(dataset, n_samples=10):
-    ix = torch.randint(0, dataset.shape[0], (n_samples,))
-    x = dataset[ix] # (n_samples, 1, 28, 28)
-    y = torch.ones((n_samples, 1))
-    return x, y
-
 def generate_latent_points(zdim=100, n_samples=10):
-    return torch.randn(n_samples, zdim)
+    z = torch.randn(n_samples, zdim)
+    return z.to(device)
 
-def generate_fake_samples(generator, zdim=100, n_samples=10):
-    z = generate_latent_points(zdim, n_samples)
-    x = generator(z)
-    y = torch.zeros((n_samples, 1))
-    return x, y
-
-def train_gan(generator, discriminator, dataset, n_epochs=100, batch_size=128, zdim=100, verbose=0):
+def train_gan(generator, discriminator, dataset, n_epochs=10, batch_size=128, zdim=100, verbose=0):
 
     dataset = dataset.to(device)
-    print("dataset shape is {}".format(dataset.shape))
-    optimizer_d = torch.optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
-    optimizer_g = torch.optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+    optimizer_d = torch.optim.Adam(discriminator.parameters(), lr=0.0001)
+    optimizer_g = torch.optim.Adam(generator.parameters(), lr=0.0001)
 
     n_batches = dataset.shape[0] // batch_size
+    # criterion = nn.BCELoss()
+
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     for epoch in tqdm(range(n_epochs)):
         generator.train()
         discriminator.train()
-        for batch in tqdm(range(n_batches)):
+
+        epoch_loss_d = 0
+        epoch_loss_g = 0
+
+        for i, x_real in tqdm(enumerate(dataloader)):
             # train discriminator
             optimizer_d.zero_grad()
 
             # train with real samples
-            x_real, y_real = generate_real_samples(dataset, batch_size)
+            y_real = torch.ones((x_real.shape[0], 1)).to(device)
             y_real_pred = discriminator(x_real)
 
             # fake samples
-            x_fake, y_fake = generate_fake_samples(generator, zdim, batch_size)
+            z = generate_latent_points(zdim, x_real.shape[0])
+            x_fake = generator(z)
+            y_fake = torch.zeros((x_fake.shape[0], 1)).to(device)
             y_fake_pred = discriminator(x_fake)
 
             # loss by paper
@@ -112,10 +108,9 @@ def train_gan(generator, discriminator, dataset, n_epochs=100, batch_size=128, z
             loss_d = torch.mean(loss_real + loss_fake)
 
             # # loss by cross entropy
-            # loss_real = torch.nn.BCELoss(y_real_pred, y_real)
-            # loss_fake = torch.nn.BCELoss(y_fake_pred, y_fake)
+            # loss_real = criterion(y_real_pred, y_real)
+            # loss_fake = criterion(y_fake_pred, y_fake)
             # loss_d = loss_real + loss_fake
-
 
             loss_d.backward()
             optimizer_d.step()
@@ -124,7 +119,8 @@ def train_gan(generator, discriminator, dataset, n_epochs=100, batch_size=128, z
             optimizer_g.zero_grad()
 
             # fake samples
-            x_fake, y_fake = generate_fake_samples(generator, zdim, batch_size)
+            z = generate_latent_points(zdim, x_real.shape[0])
+            x_fake = generator(z)
             y_fake_pred = discriminator(x_fake)
 
             # loss by paper
@@ -132,22 +128,30 @@ def train_gan(generator, discriminator, dataset, n_epochs=100, batch_size=128, z
             loss_g = torch.mean(loss_g)
 
             # # loss by cross entropy
-            # loss_g = torch.nn.BCELoss(y_fake_pred, y_fake)
+            # loss_g = criterion(y_fake_pred, y_fake)
 
             loss_g.backward()
             optimizer_g.step()
 
-        print(f'Epoch {epoch+1}/{n_epochs} | Loss D: {loss_d.item():.4f} | Loss G: {loss_g.item():.4f}')
+            epoch_loss_d += loss_d.item()
+            epoch_loss_g += loss_g.item()
+
+        epoch_loss_d /= n_batches
+        epoch_loss_g /= n_batches
+
+        print(f'Epoch {epoch+1}/{n_epochs} | Loss D: {epoch_loss_d:.4f} | Loss G: {epoch_loss_g:.4f}')
 
         if verbose == 1:
             # plot samples if epoch is multiple of 5
-            if (epoch + 1) % 5 == 0:
+            if epoch % (n_epochs // 10) == 0:
                 generator.eval()
                 discriminator.eval()
-                x_fake, y_fake = generate_fake_samples(generator, zdim, 10)
+                z = generate_latent_points(zdim, 10)
+                x_fake = generator(z)
                 fig, axes = plt.subplots(1, 10, figsize=(20, 2))
                 for i in range(10):
-                    axes[i].imshow(x_fake[i].detach().cpu().permute(1, 2, 0))
+                    axes[i].imshow(x_fake[i].detach().cpu().permute(1, 2, 0), cmap='gray')
                     axes[i].axis('off')
+                plt.title(f'Epoch {epoch+1}')
                 plt.show()
 

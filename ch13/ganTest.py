@@ -29,43 +29,30 @@ if os.path.isfile('models/generator.pt') and os.path.isfile('models/discriminato
     generator.load_state_dict(torch.load('models/generator.pt'))
     discriminator.load_state_dict(torch.load('models/discriminator.pt'))
 else:
-    train_gan(generator, discriminator, fashion_mnist_train, batch_size, zdim=100, verbose=1)
+    train_gan(generator, discriminator, fashion_mnist_train, n_epochs=10, batch_size=batch_size, zdim=100, verbose=1)
 
     # save model
     torch.save(generator.state_dict(), 'models/generator.pt')
     torch.save(discriminator.state_dict(), 'models/discriminator.pt')
 
 
-# Test the model with a sample
-fashion_mnist_test = torchvision.datasets.FashionMNIST(root='data/FashionMNIST', train=False,\
-                                                        download=True, transform=transforms.ToTensor()).data
-fashion_mnist_test_loader = torch.utils.data.DataLoader(fashion_mnist_test, batch_size=16, shuffle=True)
+# Test the model
 
 generator.eval()
 discriminator.eval()
 
+n_row = 10
 p_real, p_fake = 0., 0.
-generated_datas = {}
-for data, target in fashion_mnist_test_loader:
+for steps in range(100):
     with torch.no_grad():
-        data = data.to(device)
-        z = torch.randn(data.shape[0], 100).to(device)
+        z = torch.randn(n_row, 100).to(device)
         generated_data = generator(z)
-        if generated_datas.get(target.item()[0]) is None:
-            generated_datas.update({target.item()[0]: generated_data[0]})
-        p_real += discriminator(data).mean().item()
-        p_fake += discriminator(generated_data).mean().item()
 
-p_real /= len(fashion_mnist_test_loader)
-p_fake /= len(fashion_mnist_test_loader)
-
-print(f'p_real: {p_real:.4f}, p_fake: {p_fake:.4f}')
 
 # show generated images
 fig, axes = plt.subplots(2, 5, figsize=(10, 4))
-for key, data in generated_datas.items():
-    print(data.shape)
-    axes[key // 5][key % 5].imshow(data, cmap='gray')
-    axes[key // 5][key % 5].set_title(key)
-    axes[key // 5][key % 5].axis('off')
-
+for idx, data in enumerate(generated_data):
+    data = data.cpu().numpy().squeeze(0)
+    axes[idx // 5][idx % 5].imshow(data, cmap='gray')
+    axes[idx // 5][idx % 5].axis('off')
+plt.show()
